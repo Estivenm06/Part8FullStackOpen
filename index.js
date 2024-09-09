@@ -1,5 +1,6 @@
 import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone";
+
 let authors = [
   {
     name: "Robert Martin",
@@ -84,12 +85,11 @@ let books = [
   },
 ];
 
-
 const typeDefs = `
   type Query {
     bookCount: Int!
     authorCount: Int!
-    allBooks: [Books!]!
+    allBooks(author: String): [Books!]!
     allAuthors: [Authors!]!
   }
   type Books {
@@ -110,7 +110,24 @@ const resolvers = {
   Query: {
     bookCount: () => books.length,
     authorCount: () => authors.length,
-    allBooks: () => books,
+    allBooks: (root, args) => {
+      const author = args.author;
+      const map = authors.map((element) => element.name);
+      if (map.find((e) => e === author)) {
+        const bookOfAuthor = books.map((book) =>
+          book.author === author ? book : {}
+        );
+        const book = bookOfAuthor.reduce((accumulator, book) => {
+          const author = book.author;
+          accumulator[author] = accumulator[author] || [];
+          accumulator[author].push(book);
+          return accumulator;
+        }, {});
+        return book[`${author}`];
+      } else {
+        return books;
+      }
+    },
     allAuthors: () => authors,
   },
   Authors: {
