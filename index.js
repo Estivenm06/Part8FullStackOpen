@@ -1,5 +1,7 @@
 import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone";
+import { v1 } from "uuid";
+const uuid = v1;
 
 let authors = [
   {
@@ -18,20 +20,14 @@ let authors = [
     born: 1821,
   },
   {
-    name: "Joshua Kerievsky", // birthyear not known
+    name: "Joshua Kerievsky",
     id: "afa5b6f2-344d-11e9-a414-719c6709cf3e",
   },
   {
-    name: "Sandi Metz", // birthyear not known
+    name: "Sandi Metz",
     id: "afa5b6f3-344d-11e9-a414-719c6709cf3e",
   },
 ];
-
-/*
- * English:
- * It might make more sense to associate a book with its author by storing the author's id in the context of the book instead of the author's name
- * However, for simplicity, we will store the author's name in connection with the book
- */
 
 let books = [
   {
@@ -101,8 +97,18 @@ const typeDefs = `
   }
   type Authors {
     name: String!
+    born: Int
     id: String!
     bookCount: Int!
+  }
+  type Mutation{
+    addBook(
+    title: String!
+    author: String!
+    published: Int!
+    genres: [String!]!
+    ): Books
+    editAuthor(author: String!, sendBornTo: Int!): Authors
   }
 `;
 
@@ -111,21 +117,29 @@ const resolvers = {
     bookCount: () => books.length,
     authorCount: () => authors.length,
     allBooks: (root, args) => {
-      if(!args.author && !args.genre){
-        return books
-      }else if(args.author && !args.genre){
-        const filterAuthor = books.filter(book => book.author === args.author)
-        return filterAuthor
-      }else if(!args.author && args.genre){
-        const filterGenre = books.filter(book => book.genres.includes(args.genre))
-        return filterGenre
-      }else{
-        const filterAuthor = books.filter(book => book.author === args.author)
-        if(filterAuthor){
-          const filterGenre = filterAuthor.filter(book => book.genres.includes(args.genre))
-          return filterGenre
-        }else{
-          return books
+      if (!args.author && !args.genre) {
+        return books;
+      } else if (args.author && !args.genre) {
+        const filterAuthor = books.filter(
+          (book) => book.author === args.author
+        );
+        return filterAuthor;
+      } else if (!args.author && args.genre) {
+        const filterGenre = books.filter((book) =>
+          book.genres.includes(args.genre)
+        );
+        return filterGenre;
+      } else {
+        const filterAuthor = books.filter(
+          (book) => book.author === args.author
+        );
+        if (filterAuthor) {
+          const filterGenre = filterAuthor.filter((book) =>
+            book.genres.includes(args.genre)
+          );
+          return filterGenre;
+        } else {
+          return books;
         }
       }
     },
@@ -141,8 +155,35 @@ const resolvers = {
         {}
       );
       const value = author.find((element) => element === root.name);
-      console.log(value);
       return map[value];
+    },
+  },
+  Mutation: {
+    addBook: (root, args) => {
+      const book = { ...args, id: uuid() };
+      //console.log(authors.find((author) => author.name === args.author));
+      if (authors.find((author) => author.name === args.author)) {
+        books = books.concat(book);
+        return book;
+      } else {
+        const author = { name: args.author, id: uuid() };
+        //console.log(author);
+        authors = authors.concat(author);
+        books = books.concat(book);
+        return book;
+      }
+    },
+    editAuthor: (root, args) => {
+      const author = authors.find((author) => author.name === args.author);
+      if (!author) {
+        return null;
+      }
+      const authorToUpdate = { ...author, born: args.sendBornTo };
+      authors = authors.map((author) =>
+        author.name === args.author ? authorToUpdate : author
+      );
+      //console.log(authors);
+      return authorToUpdate;
     },
   },
 };
