@@ -46,15 +46,12 @@ export const CREATE_BOOK = gql`
 `;
 
 export const UPDATE_AUTHOR = gql`
-  mutation updateAuthor(
-  $author: String!
-  $sendBornTo: Int!
-  ){
-  editAuthor(author: $author, sendBornTo: $sendBornTo){
-  name
-  born
-  bookCount
-  id
+  mutation updateAuthor($author: String!, $sendBornTo: Int!) {
+    editAuthor(author: $author, sendBornTo: $sendBornTo) {
+      name
+      born
+      bookCount
+      id
+    }
   }
-  }
-`
+`;
