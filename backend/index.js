@@ -147,36 +147,45 @@ const resolvers = {
     authorCount: () => Author.collection.countDocuments(),
     allBooks: async (root, args) => {
       if (!args.author && !args.genre) {
-        console.log(await Book.find());
-        return await Book.find();
+        return await Book.find({}).populate('author')
       } else if (args.author && !args.genre) {
-        return await Book.find({ author: args.author });
+        return await Book.find({ author: args.author }).populate('author');
       } else if (!args.author && args.genre) {
-        return await Book.find({ genres: [args.genre] });
+        return await Book.find({ genres: [args.genre] }).populate('author');
       } else {
-        return await Book.find({ author: args.author, genres: [args.genre] });
+        return await Book.find({ author: {name: args.author}, genres: [args.genre] }).populate('author');
       }
     },
-    allAuthors: () => authors,
+    allAuthors: async () => await Author.find({}),
     me: (root, args, { currentUser }) => currentUser,
   },
   Author: {
-    bookCount: (root) => {
-      const author = books.map((element) => element.author);
+    bookCount: async (root) => {
+      const author = await Book.find().populate('author')
       const map = author.reduce(
         (accumulator, book) => (
-          (accumulator[book] = accumulator[book] + 1 || 1), accumulator
+          (accumulator[book.author.name] = accumulator[book.author.name] + 1 || 1), accumulator
         ),
         {}
       );
-      const value = author.find((element) => element === root.name);
-      return map[value];
+      const value = await Author.find({name: root.name})
+      return map[value[0].name]
     },
+  },
+  Book: {
+    author: (root) => {
+      return {
+        name: root.author.name,
+        born: root.author.born,
+        id: root.author._id,
+        bookCount: root.author.bookCount,
+      }
+    }
   },
   Mutation: {
     addBook: async (root, args, { currentUser }) => {
       const book = new Book({ ...args });
-      const person = await Author.find({ author: args.author });
+      const person = await Author.find({name: args.author});
       if (!currentUser) {
         throw new GraphQLError("invalid token", {
           extensions: {
@@ -185,15 +194,14 @@ const resolvers = {
         });
       }
       try {
-        if (person) {
-          console.log(person._id);
-          console.log(book);
-          book.author = person._id;
+        if (person[0]) {
+          book.author = person[0]._id;
           await book.save();
         } else {
           const author = new Author({ name: args.author, born: null });
           book.author = author._id;
           await author.save();
+          await book.save();
         }
       } catch (error) {
         throw new GraphQLError(error.errors.title.message, {
@@ -203,7 +211,7 @@ const resolvers = {
           },
         });
       }
-      return book;
+      return await book.populate('author')
     },
     editAuthor: async (root, args, { contextUser }) => {
       if (!args.author && !contextUser) {
@@ -268,7 +276,7 @@ startStandaloneServer(server, {
     const auth = req ? req.headers.authorization : null;
     if (auth && auth.startsWith("Bearer ")) {
       const decodedToken = jwt.verify(auth.substring(7), process.env.SECRET);
-      const currentUser = await User.findById(decodedToken.id);
+      const currentUser = await User.findById(decodedToken.id)
       return { currentUser };
     }
   },
