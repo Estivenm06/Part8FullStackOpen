@@ -1,8 +1,6 @@
 import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone";
 import { GraphQLError } from "graphql";
-import { v1 } from "uuid";
-const uuid = v1;
 
 import Author from "./src/models/authorSchema.js";
 import Book from "./src/models/bookSchema.js";
@@ -19,84 +17,6 @@ mongoose
   .connect(URI)
   .then((response) => console.log("Connected mongodb at ", URI))
   .catch((error) => console.log("Error connecting mongodb ", error));
-
-let authors = [
-  {
-    name: "Robert Martin",
-    id: "afa51ab0-344d-11e9-a414-719c6709cf3e",
-    born: 1952,
-  },
-  {
-    name: "Martin Fowler",
-    id: "afa5b6f0-344d-11e9-a414-719c6709cf3e",
-    born: 1963,
-  },
-  {
-    name: "Fyodor Dostoevsky",
-    id: "afa5b6f1-344d-11e9-a414-719c6709cf3e",
-    born: 1821,
-  },
-  {
-    name: "Joshua Kerievsky",
-    id: "afa5b6f2-344d-11e9-a414-719c6709cf3e",
-  },
-  {
-    name: "Sandi Metz",
-    id: "afa5b6f3-344d-11e9-a414-719c6709cf3e",
-  },
-];
-
-let books = [
-  {
-    title: "Clean Code",
-    published: 2008,
-    author: "Robert Martin",
-    id: "afa5b6f4-344d-11e9-a414-719c6709cf3e",
-    genres: ["refactoring"],
-  },
-  {
-    title: "Agile software development",
-    published: 2002,
-    author: "Robert Martin",
-    id: "afa5b6f5-344d-11e9-a414-719c6709cf3e",
-    genres: ["agile", "patterns", "design"],
-  },
-  {
-    title: "Refactoring, edition 2",
-    published: 2018,
-    author: "Martin Fowler",
-    id: "afa5de00-344d-11e9-a414-719c6709cf3e",
-    genres: ["refactoring"],
-  },
-  {
-    title: "Refactoring to patterns",
-    published: 2008,
-    author: "Joshua Kerievsky",
-    id: "afa5de01-344d-11e9-a414-719c6709cf3e",
-    genres: ["refactoring", "patterns"],
-  },
-  {
-    title: "Practical Object-Oriented Design, An Agile Primer Using Ruby",
-    published: 2012,
-    author: "Sandi Metz",
-    id: "afa5de02-344d-11e9-a414-719c6709cf3e",
-    genres: ["refactoring", "design"],
-  },
-  {
-    title: "Crime and punishment",
-    published: 1866,
-    author: "Fyodor Dostoevsky",
-    id: "afa5de03-344d-11e9-a414-719c6709cf3e",
-    genres: ["classic", "crime"],
-  },
-  {
-    title: "Demons",
-    published: 1872,
-    author: "Fyodor Dostoevsky",
-    id: "afa5de04-344d-11e9-a414-719c6709cf3e",
-    genres: ["classic", "revolution"],
-  },
-];
 
 const typeDefs = `
   type Query {
@@ -125,7 +45,7 @@ const typeDefs = `
     author: String!
     published: Int!
     genres: [String!]!
-    ): Book!
+    ): Book
     editAuthor(author: String!, sendBornTo: Int!): Author
     createUser(username: String! favoriteGenre: String!): User
     login(username: String! password: String!): Token
@@ -147,13 +67,16 @@ const resolvers = {
     authorCount: () => Author.collection.countDocuments(),
     allBooks: async (root, args) => {
       if (!args.author && !args.genre) {
-        return await Book.find({}).populate('author')
+        return await Book.find({}).populate("author");
       } else if (args.author && !args.genre) {
-        return await Book.find({ author: args.author }).populate('author');
+        return await Book.find({ author: args.author }).populate("author");
       } else if (!args.author && args.genre) {
-        return await Book.find({ genres: [args.genre] }).populate('author');
+        return await Book.find({ genres: [args.genre] }).populate("author");
       } else {
-        return await Book.find({ author: {name: args.author}, genres: [args.genre] }).populate('author');
+        return await Book.find({
+          author: { name: args.author },
+          genres: [args.genre],
+        }).populate("author");
       }
     },
     allAuthors: async () => await Author.find({}),
@@ -161,15 +84,17 @@ const resolvers = {
   },
   Author: {
     bookCount: async (root) => {
-      const author = await Book.find().populate('author')
+      const author = await Book.find().populate("author");
       const map = author.reduce(
         (accumulator, book) => (
-          (accumulator[book.author.name] = accumulator[book.author.name] + 1 || 1), accumulator
+          (accumulator[book.author.name] =
+            accumulator[book.author.name] + 1 || 1),
+          accumulator
         ),
         {}
       );
-      const value = await Author.find({name: root.name})
-      return map[value[0].name]
+      const value = await Author.find({ name: root.name });
+      return map[value[0].name];
     },
   },
   Book: {
@@ -179,13 +104,13 @@ const resolvers = {
         born: root.author.born,
         id: root.author._id,
         bookCount: root.author.bookCount,
-      }
-    }
+      };
+    },
   },
   Mutation: {
     addBook: async (root, args, { currentUser }) => {
       const book = new Book({ ...args });
-      const person = await Author.find({name: args.author});
+      const person = await Author.find({ name: args.author });
       if (!currentUser) {
         throw new GraphQLError("invalid token", {
           extensions: {
@@ -198,9 +123,9 @@ const resolvers = {
           book.author = person[0]._id;
           await book.save();
         } else {
-          const author = new Author({ name: args.author, born: null });
-          book.author = author._id;
-          await author.save();
+          const newAuthor = new Author({ name: args.author, born: null });
+          await newAuthor.save();
+          book.author = newAuthor._id;
           await book.save();
         }
       } catch (error) {
@@ -211,7 +136,7 @@ const resolvers = {
           },
         });
       }
-      return await book.populate('author')
+      return book;
     },
     editAuthor: async (root, args, { contextUser }) => {
       if (!args.author && !contextUser) {
@@ -276,7 +201,7 @@ startStandaloneServer(server, {
     const auth = req ? req.headers.authorization : null;
     if (auth && auth.startsWith("Bearer ")) {
       const decodedToken = jwt.verify(auth.substring(7), process.env.SECRET);
-      const currentUser = await User.findById(decodedToken.id)
+      const currentUser = await User.findById(decodedToken.id);
       return { currentUser };
     }
   },

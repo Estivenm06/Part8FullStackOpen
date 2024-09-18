@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation } from "@apollo/client";
 import { ALL_AUTHORS, ALL_BOOKS, CREATE_BOOK } from "../queries";
+import { useApolloClient } from "@apollo/client";
 
 const NewBook = () => {
   const [title, setTitle] = useState("");
@@ -10,19 +11,17 @@ const NewBook = () => {
   const [genres, setGenres] = useState([]);
 
   const [createBook] = useMutation(CREATE_BOOK, {
-    refetchQueries: [{ query: ALL_AUTHORS }, { query: ALL_BOOKS }],
+    refetchQueries: ({query: ALL_BOOKS}, {query: ALL_AUTHORS})
   });
 
   const submit = async (event) => {
     event.preventDefault();
     const published = Number(p);
     await createBook({ variables: { title, author, published, genres } });
-
     setTitle("");
     setPublished("");
     setAuthor("");
     setGenres([]);
-    setGenre("");
   };
 
   const addGenre = () => {
@@ -31,7 +30,7 @@ const NewBook = () => {
   };
 
   return (
-    <div>
+    <>
       <form onSubmit={submit}>
         <div>
           title
@@ -67,7 +66,7 @@ const NewBook = () => {
         <div>genres: {genres.join(" ")}</div>
         <button type="submit">create book</button>
       </form>
-    </div>
+    </>
   );
 };
 
