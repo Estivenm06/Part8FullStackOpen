@@ -30,8 +30,8 @@ const client = new ApolloClient({
 });
 
 const query = gql`
-  query {
-    allBooks {
+  query getByGenre($genre: String){
+    allBooks(genre: $genre){
       genres
       id
       title
@@ -40,7 +40,7 @@ const query = gql`
   }
 `;
 
-client.query({ query }).then((response) => console.log(response.data));
+client.query({query}).then((response) => console.log(response.data));
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

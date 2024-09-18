@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Authors from "./components/Authors";
 import Books from "./components/Books";
 import NewBook from "./components/NewBook";
+import { Recommedantion } from "./components/Recommendation";
 import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
 import { useQuery } from "@apollo/client";
 import { ALL_AUTHORS, ALL_BOOKS } from "./queries";
@@ -10,6 +11,8 @@ import { useApolloClient } from "@apollo/client";
 
 const App = () => {
   const [token, setToken] = useState(null);
+  let [genre, setGenre] = useState(null);
+  if (genre == "all genres") genre = null;
   const client = useApolloClient();
 
   useEffect(() => {
@@ -30,7 +33,11 @@ const App = () => {
     loading: loadAu,
     error: errAu,
   } = useQuery(ALL_AUTHORS);
-  const { data: books, loading: loadBo, error: errBo } = useQuery(ALL_BOOKS);
+  const {
+    data: books,
+    loading: loadBo,
+    error: errBo,
+  } = useQuery(ALL_BOOKS, { variables: { genre: genre } });
   if (loadAu || loadBo) return <div>Loading...</div>;
   return (
     <Router>
@@ -51,6 +58,11 @@ const App = () => {
           </Link>
         )}
         {token ? (
+          <Link to={"/recommend"}>
+            <button>recommend</button>
+          </Link>
+        ) : null}
+        {token ? (
           <Link to={"/"}>
             <button onClick={logout}>logout</button>
           </Link>
@@ -62,11 +74,20 @@ const App = () => {
           path="/"
           element={<Authors authors={authors.allAuthors} />}
         ></Route>
-        <Route path="/books" element={<Books books={books.allBooks} />}></Route>
+        <Route
+          path="/books"
+          element={
+            <Books setGenre={setGenre} genre={genre} books={books.allBooks} />
+          }
+        ></Route>
         <Route path="/add" element={<NewBook />}></Route>
         <Route
           path="/login"
           element={<LoginForm setToken={setToken} />}
+        ></Route>
+        <Route
+          path="/recommend"
+          element={<Recommedantion books={books.allBooks} />}
         ></Route>
       </Routes>
     </Router>

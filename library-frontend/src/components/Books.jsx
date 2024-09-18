@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 const GenreSet = ({ setGenre }) => {
   return (
     <div>
@@ -40,17 +38,11 @@ const GenreSet = ({ setGenre }) => {
   );
 };
 
-const Books = ({ books }) => {
-  let [genre, setGenre] = useState("all genres");
-  if (genre !== "all genres") {
-    books = books.filter((book) => book.genres == genre);
-  } else {
-    books = books;
-  }
+const Books = ({setGenre, books, genre}) => {
   return (
     <div>
       <h2>books</h2>
-      in genre <strong>{genre !== null ? genre : null}</strong>
+      in genre <strong>{genre !== null ? genre : "all genres"}</strong>
       <table>
         <tbody>
           <tr>
