@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@apollo/client";
 import { ALL_AUTHORS, ALL_BOOKS, CREATE_BOOK } from "../queries";
-import { useApolloClient } from "@apollo/client";
 
 const NewBook = () => {
   const [title, setTitle] = useState("");
@@ -10,19 +9,32 @@ const NewBook = () => {
   const [genre, setGenre] = useState("");
   const [genres, setGenres] = useState([]);
 
-  const [createBook] = useMutation(CREATE_BOOK, {
-    refetchQueries: ({query: ALL_BOOKS}, {query: ALL_AUTHORS})
-  });
-
+  const [createBook, { data, error, loading }] = useMutation(CREATE_BOOK, {
+    refetchQueries: () => [{query: ALL_BOOKS}, {query: ALL_AUTHORS}]
+  })
   const submit = async (event) => {
     event.preventDefault();
     const published = Number(p);
-    await createBook({ variables: { title, author, published, genres } });
-    setTitle("");
-    setPublished("");
-    setAuthor("");
-    setGenres([]);
+    try {
+      await createBook({
+        variables: { title, author, published, genres },
+      });
+      setTitle("");
+      setPublished("");
+      setAuthor("");
+      setGenres([]);
+    } catch (error) {
+      console.error("Unexpected error: ", error);
+    }
   };
+
+  useEffect(() => {
+    try {
+      if (data && data.addBook === null) {
+        console.log("Error unexpected");
+      }
+    } catch (error) {}
+  }, [data]);
 
   const addGenre = () => {
     setGenres(genres.concat(genre));

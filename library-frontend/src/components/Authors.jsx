@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { useMutation } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import { ALL_AUTHORS, ALL_BOOKS, UPDATE_AUTHOR } from "../queries";
 import Select from "react-select";
 
-const Authors = ({ authors }) => {
+const Authors = ({authors}) => {
   const [name, setName] = useState(null);
   const [born, setBorn] = useState("");
+
   const options = authors.map((author) => {
     return { value: author.name, label: author.name };
   });

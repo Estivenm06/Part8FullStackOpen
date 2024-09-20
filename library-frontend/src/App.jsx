@@ -4,16 +4,24 @@ import Books from "./components/Books";
 import NewBook from "./components/NewBook";
 import { Recommedantion } from "./components/Recommendation";
 import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
-import { useQuery } from "@apollo/client";
-import { ALL_AUTHORS, ALL_BOOKS } from "./queries";
+import { ALL_AUTHORS, ALL_BOOKS, BOOK_ADDED } from "./queries";
 import { LoginForm } from "./components/LoginForm";
-import { useApolloClient } from "@apollo/client";
+import { useApolloClient, useSubscription, useQuery } from "@apollo/client";
 
 const App = () => {
   const [token, setToken] = useState(null);
   let [genre, setGenre] = useState(null);
+  const [book, setBook] = useState([])
   if (genre == "all genres") genre = null;
   const client = useApolloClient();
+  useSubscription(BOOK_ADDED, {
+    onData: ({ data, client }) => {
+      const bookAdded = [...book, data.data.bookAdded]
+      setBook(bookAdded)
+      client.cache.writeQuery({query: ALL_BOOKS, data: {allBooks: [...client.cache.readQuery({query: ALL_BOOKS}).allBooks, bookAdded]}})
+      window.alert(`${data.data.bookAdded.title} by ${data.data.bookAdded.author.name} added`)
+    },
+  });
 
   useEffect(() => {
     const token = localStorage.getItem("loginUser");
@@ -37,8 +45,13 @@ const App = () => {
     data: books,
     loading: loadBo,
     error: errBo,
-  } = useQuery(ALL_BOOKS, { variables: { genre: genre } });
-  if (loadAu || loadBo) return <div>Loading...</div>;
+  } = useQuery(ALL_BOOKS, { variables: { genre: genre }});
+  useEffect(() => {
+    if(books && books.allBooks){
+      setBook(books.allBooks)
+    }
+  }, [books])
+  if (loadBo || loadAu) return <div>Loading...</div>;
   return (
     <Router>
       <div>
@@ -77,10 +90,10 @@ const App = () => {
         <Route
           path="/books"
           element={
-            <Books setGenre={setGenre} genre={genre} books={books.allBooks} />
+            <Books setGenre={setGenre} genre={genre} books={book} />
           }
         ></Route>
-        <Route path="/add" element={<NewBook />}></Route>
+        <Route path="/add" element={<NewBook setBook={setBook}/>}></Route>
         <Route
           path="/login"
           element={<LoginForm setToken={setToken} />}

@@ -11,6 +11,9 @@ const schema = new Schema({
   born: {
     type: Number,
   },
+  bookCount: {
+    type: Number
+  }
 });
 
 schema.plugin(uniqueValidator);
