@@ -1,29 +1,32 @@
 import { ApolloServer } from "@apollo/server";
+import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
+import { expressMiddleware } from "@apollo/server/express4";
+import { makeExecutableSchema } from "@graphql-tools/schema";
+import { useServer } from "graphql-ws/lib/use/ws";
+import { WebSocketServer } from "ws";
 import express from "express";
 import cors from "cors";
 import http from "http";
-import { makeExecutableSchema } from "@graphql-tools/schema";
-import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
-import { expressMiddleware } from "@apollo/server/express4";
-import { useServer } from "graphql-ws/lib/use/ws";
-import { WebSocketServer } from "ws";
-import User from "./src/models/userSchema.js";
+import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+import "dotenv/config";
+// Local imports
 import { resolvers } from "./resolver.js";
 import { typeDefs } from "./schema.js";
-import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
-import dotenv from "dotenv";
-dotenv.config();
+import User from "./src/models/userSchema.js";
 
-const URI = process.env.MONGODB_URI;
-mongoose.set("strictQuery", false);
-mongoose
-  .connect(URI)
-  .then((response) => console.log("Connected mongodb at ", URI))
-  .catch((error) => console.log("Error connecting mongodb ", error));
+(async () => {
+  const URI = process.env.MONGODB_URI;
+  if (!URI) {
+    console.log("MONGODB_URI is not defined in environment variables");
+    return;
+  }
+  mongoose.set("strictQuery", false);
+  await mongoose
+    .connect(URI)
+    .then(() => console.log("Connected mongodb at ", URI))
+    .catch((error) => console.log("Error connecting mongodb ", error));
 
-
-const start = async () => {
   const app = express();
   const httpServer = http.createServer(app);
 
@@ -77,6 +80,4 @@ const start = async () => {
   httpServer.listen(PORT, () => {
     console.log(`Server is now running on http://localhost:${PORT}`);
   });
-};
-
-start();
+})();
